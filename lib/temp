@@ -1,0 +1,99 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
+
+import 'chat_screen.dart'; // 👈 make sure this import is correct
+
+class HomeScreen extends StatelessWidget {
+  const HomeScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final currentUser = FirebaseAuth.instance.currentUser!;
+
+    return Scaffold(
+      appBar: AppBar(
+        leading: IconButton(
+          onPressed: () {},
+          icon: const Icon(Icons.menu),
+        ),
+        title: const Text('Chats'),
+        actions: [
+          IconButton(
+            onPressed: () {},
+            icon: const Icon(Icons.person),
+          ),
+        ],
+      ),
+
+      body: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection('users')
+            .snapshots(),
+
+        builder: (context, snapshot) {
+
+          // 🔄 Loading
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          // ❌ No data
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return const Center(child: Text("No users found"));
+          }
+
+          final users = snapshot.data!.docs;
+
+          // ❗ Exclude current user
+          final filteredUsers = users.where((user) {
+            final data = user.data() as Map<String, dynamic>;
+            return data['uid'] != currentUser.uid;
+          }).toList();
+
+          // ❌ No other users
+          if (filteredUsers.isEmpty) {
+            return const Center(child: Text("No other users available"));
+          }
+
+          // ✅ Users List
+          return ListView.builder(
+            itemCount: filteredUsers.length,
+            itemBuilder: (context, index) {
+
+              final userDoc = filteredUsers[index];
+
+
+              return ListTile(
+                leading: const CircleAvatar(
+                  child: Icon(Icons.person),
+                ),
+
+                // 🔥 SAFE FIELD ACCESS
+                title: Text(
+                  data['name'] ?? data['email'] ?? 'No Name',
+                ),
+
+                subtitle: Text(
+                  data['email'] ?? '',
+                ),
+
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => ChatScreen(
+                        receiverId: data['uid'],
+                        receiverEmail: data['email'],
+                      ),
+                    ),
+                  );
+                },
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+}
