@@ -34,6 +34,7 @@ class CDrawer extends StatelessWidget {
             title: Text('Settings'),
             onTap: () {
               // Handle settings tap
+              context.go(RouteNames.settings);
             },
           ),
           ListTile(
